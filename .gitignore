@@ -1,0 +1,32 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# PowerShell / logs
+*.log
+*.tmp
+
+# Audio source and output files
+*.mp3
+*.flac
+*.wav
+*.ape
+*.ncm
+*.m4a
+*.aac
+*.ogg
+*.lrc
+
+# Generated output folders
+mp3/
+output/
+converted/
+dist/
+
+# Large local archives
+*.zip
+*.rar
+*.7z
