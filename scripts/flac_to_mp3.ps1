@@ -1,7 +1,14 @@
 # flac_to_mp3.ps1
-# 功能：将当前文件夹下的 .flac 文件批量转换为 320kbps MP3
+# 功能：将 FLAC 文件批量转换为 320kbps MP3
 # 适用场景：车载 U 盘音乐整理
 # 前置要求：已安装 FFmpeg，并能在 PowerShell 中直接运行 ffmpeg 命令
+
+param(
+    [string]$InputDir = ".",
+    [string]$OutputDir = "mp3",
+    [string]$Bitrate = "320k",
+    [switch]$Recurse
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -17,28 +24,50 @@ catch {
     exit 1
 }
 
-$outputDir = "mp3"
-
-if (!(Test-Path $outputDir)) {
-    New-Item -ItemType Directory -Path $outputDir | Out-Null
+if (!(Test-Path $InputDir)) {
+    Write-Host "输入目录不存在：$InputDir" -ForegroundColor Red
+    exit 1
 }
 
-$flacFiles = Get-ChildItem -Path . -Filter *.flac
+if (!(Test-Path $OutputDir)) {
+    New-Item -ItemType Directory -Path $OutputDir | Out-Null
+}
+
+if ($Recurse) {
+    $flacFiles = Get-ChildItem -Path $InputDir -Filter *.flac -File -Recurse
+}
+else {
+    $flacFiles = Get-ChildItem -Path $InputDir -Filter *.flac -File
+}
 
 if ($flacFiles.Count -eq 0) {
-    Write-Host "当前文件夹未找到 FLAC 文件。" -ForegroundColor Yellow
+    Write-Host "未找到 FLAC 文件：$InputDir" -ForegroundColor Yellow
     exit 0
 }
 
 Write-Host "共找到 $($flacFiles.Count) 个 FLAC 文件，开始转换..." -ForegroundColor Cyan
+Write-Host "输出目录：$OutputDir" -ForegroundColor Cyan
+Write-Host "码率：$Bitrate" -ForegroundColor Cyan
+
+$successCount = 0
+$failCount = 0
 
 foreach ($file in $flacFiles) {
-    $inputPath = $file.FullName
-    $outputPath = Join-Path $outputDir ($file.BaseName + ".mp3")
+    $outputPath = Join-Path $OutputDir ($file.BaseName + ".mp3")
 
     Write-Host "正在转换：$($file.Name)" -ForegroundColor Cyan
 
-    ffmpeg -y -i "$inputPath" -codec:a libmp3lame -b:a 320k -ar 44100 -ac 2 "$outputPath"
+    try {
+        ffmpeg -y -i "$($file.FullName)" -codec:a libmp3lame -b:a $Bitrate -ar 44100 -ac 2 "$outputPath"
+        $successCount++
+    }
+    catch {
+        Write-Host "转换失败：$($file.Name)" -ForegroundColor Red
+        $failCount++
+    }
 }
 
-Write-Host "全部转换完成，输出目录：$outputDir" -ForegroundColor Green
+Write-Host "转换完成。" -ForegroundColor Green
+Write-Host "成功：$successCount" -ForegroundColor Green
+Write-Host "失败：$failCount" -ForegroundColor Yellow
+Write-Host "输出目录：$OutputDir" -ForegroundColor Green
